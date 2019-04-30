@@ -18,6 +18,13 @@ const Tweets = new mongoose.Schema({
     lang: {
         type: String
     },
+    isFavourite: {
+        type: Boolean,
+        default: false
+    },
+    created_at: {
+        type: Date
+    },
     favorite_count: {
         type: Number,
     },

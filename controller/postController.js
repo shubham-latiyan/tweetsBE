@@ -18,55 +18,26 @@ exports.saveTweets = async (req, res) => {
       })
       await user.save();
     }
+    // check if already tweets are saved or not.
+    let tweetsData = await tweets.find({ user_id: user.user_id })
+    let finalArray = req.body.filter(ar1 => !tweetsData.find(ar2 => ar1.id_str === ar2.id_str))
 
-    req.body.forEach(async (el) => {
-      let newTweets = new tweets({
-        user_id: user.user_id,
-        text: el.text,
-        id_str: el.id_str,
-        lang: el.lang,
-        favorite_count: el.favorite_count,
-        retweeted: el.retweeted,
-        source: el.source,
-        truncated: el.truncated
+    if (finalArray.length > 0) {
+      finalArray.forEach(async (el) => {
+        let newTweets = new tweets({
+          user_id: user.user_id,
+          text: el.text,
+          id_str: el.id_str,
+          lang: el.lang,
+          favorite_count: el.favorite_count,
+          retweeted: el.retweeted,
+          source: el.source,
+          truncated: el.truncated,
+          created_at: el.created_at
+        })
+        await newTweets.save();
       })
-      await newTweets.save();
-    })
-    // for (let i = 0; i < req.body.length; i++) {
-    // }
-    // }
-    // if () {
-    // let postContent = req.body.text;
-    // let post = await Tweets.findOne({
-    //   post_content: postContent
-    // });
-    //   if (post == null) {
-    //     let newPost = new Tweets({
-    //       post_content: postContent,
-    //       created_on: Date.now()
-    //     })
-
-    //     let savedPost = await newPost.save();
-
-    //     if (savedPost) {
-    //       res.json({
-    //         isSuccess: true,
-    //         data: savedPost
-    //       });
-    //     }
-    //   } else {
-    //     res.json({
-    //       isSuccess: false,
-    //       msg: "post already exists"
-    //     });
-    //   }
-    // }
-    // else {
-    //   res.json({
-    //     isSuccess: false,
-    //     error: 'data incorrect'
-    //   })
-    // }
+    }
     res.json({
       success: true,
     })
@@ -81,16 +52,21 @@ exports.saveTweets = async (req, res) => {
 
 exports.getTweets = async (req, res) => {
   try {
+    let query = {};
+    query["user_id"] = req.params.user_id;
+    query["isDeleted"] = false;
+    if (req.params.value == "true") {
+      query["isFavourite"] = true;
+    }
+
     let data = await tweets.aggregate([
       {
-        $match: {
-          user_id: req.params.user_id,
-          isDeleted: false
-        }
+        $match: query
       },
       {
         $project: {
-          text: 1
+          text: 1,
+          isFavourite: 1
         }
       }
     ])
@@ -176,38 +152,48 @@ exports.deleteTweet = async (req, res) => {
   }
 }
 
-exports.searchTweets = async (req, res) =>{
+exports.searchTweets = async (req, res) => {
   try {
-    if (req.params.keyword.length > 0) {
-      let data = await tweets.aggregate([
-        {
-          $match: {
-            text: new RegExp("^.*" + req.params.keyword + ".*$", "i")
-          }
-        }
-      ])
-      if(data){
-        console.log('data:', data)
-        res.json({
-          success: true,
-          data: data
-        })
+    let query = {};
+    if (req.params.keyword !== "undefined") {
+      query["text"] = new RegExp("^.*" + req.params.keyword + ".*$", "i")
+    }
+    else if (req.params.from != "undefined" && req.params.to != "undefined") {
+      let from = new Date(req.params.from);
+      let to = new Date(req.params.to);
+      from.setHours(0, 0, 0, 0);
+      to.setHours(23, 59, 59, 999);
+      query["created_at"] = {
+        $gte: from,
+        $lt: to
       }
-      else{
-        res.json({
-          success: true,
-          data: []
-        })
-      }
-    } else {
+    }
+    else {
       res.json({
         success: false,
         error: 'error occured'
       })
     }
-    
+    let data = await tweets.aggregate([
+      {
+        $match: query
+      }
+    ])
+    if (data) {
+      res.json({
+        success: true,
+        data: data
+      })
+    }
+    else {
+      res.json({
+        success: true,
+        data: []
+      })
+    }
+
+
   } catch (err) {
-    console.log('err:', err)
     res.json({
       success: false,
       err
@@ -215,3 +201,30 @@ exports.searchTweets = async (req, res) =>{
   }
 }
 
+exports.makeFavourite = async (req, res) => {
+  try {
+    if (req.body.id) {
+      let data = await tweets.findOne({
+        _id: mongoose.Types.ObjectId(req.body.id)
+      })
+      data.isFavourite ? data.isFavourite = false : data.isFavourite = true;
+      await data.save();
+      if (data) {
+        res.json({
+          success: true,
+        })
+      }
+    }
+    else {
+      res.json({
+        success: false,
+        error: 'id not found'
+      })
+    }
+  } catch (err) {
+    res.json({
+      success: false,
+      err
+    })
+  }
+}
