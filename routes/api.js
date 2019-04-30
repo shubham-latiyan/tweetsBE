@@ -14,7 +14,4 @@ router.patch('/tweets/edit/:tweet_id', postController.editTweet);
 router.delete('/tweets/:tweet_id', postController.deleteTweet);
 router.get('/tweets/search/:id/:keyword/filter/:from/:to', postController.searchTweets);
 router.post('/tweets/favourite', postController.makeFavourite);
-
-// router.post('/upvote', postController.upvote);
-// router.get('/getAllPosts', postController.getAllPosts);
 module.exports = router;
