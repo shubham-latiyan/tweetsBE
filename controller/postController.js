@@ -161,6 +161,7 @@ exports.deleteTweet = async (req, res) => {
 exports.searchTweets = async (req, res) => {
   try {
     let query = {};
+    query["user_id"] = req.params.id;
     if (req.params.keyword !== "undefined") {
       query["text"] = new RegExp("^.*" + req.params.keyword + ".*$", "i")
     }
