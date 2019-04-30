@@ -20,7 +20,13 @@ exports.saveTweets = async (req, res) => {
     }
     // check if already tweets are saved or not.
     let tweetsData = await tweets.find({ user_id: user.user_id })
-    let finalArray = req.body.filter(ar1 => !tweetsData.find(ar2 => ar1.id_str === ar2.id_str))
+    let finalArray = [];
+    if(tweetsData.length > 0){
+      finalArray = req.body.filter(ar1 => !tweetsData.find(ar2 => ar1.id_str === ar2.id_str))
+    }
+    else {
+      finalArray = req.body;
+    }
 
     if (finalArray.length > 0) {
       finalArray.forEach(async (el) => {
